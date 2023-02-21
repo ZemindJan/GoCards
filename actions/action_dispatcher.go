@@ -1,74 +1,108 @@
 package actions
 
 import (
-	"GoCards/slice"
+	"GoCards/utils"
+	"unsafe"
 )
 
-type ActionDispatcher[T Action] struct {
-	onStartListeners     []*ActionListener[T] // These are the only listeners which may modify
-	onCompletedListeners []*ActionListener[T]
-	onBlockedListeners   []*ActionListener[T]
+type IDispatcher[T Action] interface {
+	Dispatch(action T)
+	SubscribeOnStart(listener Listener[T])
+	UnsubscribeOnStart(Listener Listener[T])
+	SubscribeOnFinished(listener Listener[T])
+	UnsubscribeOnFinished(Listener Listener[T])
+	SubscribeOnBlocked(listener Listener[T])
+	UnsubscribeOnBlocked(Listener Listener[T])
 }
 
-func (dispatcher ActionDispatcher[T]) Dispatch(action T) {
-	var encountered_listeners = make([]*ActionListener[T], 0)
+type Dispatcher[T Action] struct {
+	onStartListeners    []Listener[T]
+	onFinishedListeners []Listener[T]
+	onBlockedListeners  []Listener[T]
+}
 
-	for {
-		action.SetModified(false)
+// PUBLIC
 
-		for _, ptr := range dispatcher.onStartListeners {
-			if ptr == nil {
-				return
-			}
-
-			listener := (*ptr)
-
-			// Skip Encountered Listeners
-			if slice.Contains(encountered_listeners, ptr) {
-				continue
-			}
-
-			listener.Notify(action)
-
-			if action.IsModified() {
-				encountered_listeners = append(encountered_listeners, ptr)
-				break
-			}
-		}
-
-		if !action.IsModified() {
-			break
-		}
-	}
-
-	var final_listeners = dispatcher.onCompletedListeners
+func (dispatcher *Dispatcher[T]) Dispatch(action T) {
+	dispatcher.dispatchStart(action)
 
 	if action.IsBlocked() {
-		final_listeners = dispatcher.onBlockedListeners
+		dispatcher.dispatchBlocked(action)
+	} else {
+		dispatcher.dispatchFinished(action)
 	}
+}
 
-	if final_listeners == nil {
-		return
-	}
+func (dispatcher *Dispatcher[T]) SubscribeOnStart(listener Listener[T]) {
+	dispatcher.onStartListeners = append(dispatcher.onStartListeners, listener)
+}
 
-	for _, ptr := range final_listeners {
-		if ptr == nil {
-			return
-		}
+func (dispatcher *Dispatcher[T]) SubscribeOnFinished(listener Listener[T]) {
+	dispatcher.onFinishedListeners = append(dispatcher.onFinishedListeners, listener)
+}
 
-		var listener = *ptr
+func (dispatcher *Dispatcher[T]) SubscribeOnBlocked(listener Listener[T]) {
+	dispatcher.onBlockedListeners = append(dispatcher.onBlockedListeners, listener)
+}
+
+func (dispatcher *Dispatcher[T]) UnsubscribeOnStart(listener Listener[T]) {
+	utils.RemoveFirst(dispatcher.onStartListeners, func(item Listener[T]) bool {
+		return listener.getId() == item.getId()
+	})
+}
+
+func (dispatcher *Dispatcher[T]) UnsubscribeOnFinished(listener Listener[T]) {
+	utils.RemoveFirst(dispatcher.onFinishedListeners, func(item Listener[T]) bool {
+		return listener.getId() == item.getId()
+	})
+}
+
+func (dispatcher *Dispatcher[T]) UnsubscribeOnBlocked(listener Listener[T]) {
+	utils.RemoveFirst(dispatcher.onBlockedListeners, func(item Listener[T]) bool {
+		return listener.getId() == item.getId()
+	})
+}
+
+// PRIVATE
+
+func (dispatcher *Dispatcher[T]) dispatchBlocked(action T) {
+	for _, listener := range dispatcher.onBlockedListeners {
 		listener.Notify(action)
 	}
 }
 
-func (dispatcher ActionDispatcher[T]) OnStart(listener *ActionListener[T]) {
-	dispatcher.onStartListeners = append(dispatcher.onStartListeners, listener)
+func (dispatcher *Dispatcher[T]) dispatchFinished(action T) {
+	for _, listener := range dispatcher.onFinishedListeners {
+		listener.Notify(action)
+	}
 }
 
-func (dispatcher ActionDispatcher[T]) OnCompleted(listener *ActionListener[T]) {
-	dispatcher.onCompletedListeners = append(dispatcher.onStartListeners, listener)
-}
+func (dispatcher *Dispatcher[T]) dispatchStart(action T) {
+	encountered := make([]unsafe.Pointer, 0)
 
-func (dispatcher ActionDispatcher[T]) OnBlocked(listener *ActionListener[T]) {
-	dispatcher.onBlockedListeners = append(dispatcher.onStartListeners, listener)
+	for {
+		for _, listener := range dispatcher.onStartListeners {
+			// Don't notify encountered listeners
+			if utils.Contains(encountered, unsafe.Pointer(&listener)) {
+				continue
+			}
+
+			action.SetModified(false)
+
+			listener.Notify(action)
+
+			if action.IsModified() {
+				encountered = append(encountered, unsafe.Pointer(&listener))
+				break
+			}
+
+		}
+
+		// Only stop once actions aren't modified
+		if !action.IsModified() {
+			break
+		} else {
+			action.SetModified(false)
+		}
+	}
 }

@@ -1,32 +1,24 @@
 package main
 
-import (
-	. "GoCards/actions"
-	. "GoCards/slice"
-	"fmt"
-)
-
-type test struct {
+type ITest interface {
+	test()
 }
 
-func (t test) Notify(oldValue int, newValue int) {
-	fmt.Println("Changed health from %d to %d", oldValue, newValue)
+type Test struct {
+	val int
+}
+
+func (test Test) test() {
+
 }
 
 func main() {
-	RemoveAt(make([]int, 2), 1)
-	fmt.Println("hello world")
+	slc := make([]ITest, 0)
 
-	var p1 = Player{}
+	test1 := Test{3}
+	test2 := Test{5}
 
-	var listener ActionListener[StatChangeAction[int]] = ActionListenerFunction[StatChangeAction[int]]{
-		Function: func(change StatChangeAction[int]) {
-			fmt.Println()
-		},
-	}
+	slc = append(slc, test1, test2)
 
-	p1.health.OnChange.OnStart(&listener)
-
-	p1.health.Change(10)
-
+	println(slc)
 }

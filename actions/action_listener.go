@@ -1,13 +1,8 @@
 package actions
 
-type ActionListener[T Action] interface {
+// Interface for listeners that want to intercept changes to game state
+// getID should be unique
+type Listener[T Action] interface {
 	Notify(action T)
-}
-
-type ActionListenerFunction[T Action] struct {
-	Function func(action T)
-}
-
-func (listener ActionListenerFunction[T]) Notify(action T) {
-	listener.Function(action)
+	getId() string
 }
