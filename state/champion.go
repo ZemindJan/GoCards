@@ -1,10 +1,11 @@
 package state
 
 type Champion struct {
-	Prototype *ChampionPrototype
-	Health    BoundedStat[int]
-	Charge    BoundedStat[int]
-	Offering  Offering
+	Prototype                *ChampionPrototype
+	Health                   BoundedStat[int]
+	Charge                   BoundedStat[int]
+	Offering                 Offering
+	DamageTakenSinceLastTurn int
 }
 
 func (ch *Champion) GetName() string {

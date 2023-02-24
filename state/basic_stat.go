@@ -21,7 +21,7 @@ func (stat *BasicStat[T]) Set(value T) {
 	})
 }
 
-func (stat *BasicStat[T]) setDirect(value T) {
+func (stat *BasicStat[T]) SetDirect(value T) {
 	stat.value = value
 }
 

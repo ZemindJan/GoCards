@@ -1,6 +1,8 @@
 package actions
 
-import "GoCards/utils"
+import (
+	"GoCards/utils"
+)
 
 type BaseDispatcher[T Action] struct {
 	onStartListeners    []Listener[T]
@@ -34,19 +36,19 @@ func (dispatcher *BaseDispatcher[T]) SubscribeOnBlocked(listener Listener[T]) {
 
 func (dispatcher *BaseDispatcher[T]) UnsubscribeOnStart(listener Listener[T]) {
 	utils.RemoveFirst(dispatcher.onStartListeners, func(item Listener[T]) bool {
-		return listener.getId() == item.getId()
+		return listener.GetId() == item.GetId()
 	})
 }
 
 func (dispatcher *BaseDispatcher[T]) UnsubscribeOnFinished(listener Listener[T]) {
 	utils.RemoveFirst(dispatcher.onFinishedListeners, func(item Listener[T]) bool {
-		return listener.getId() == item.getId()
+		return listener.GetId() == item.GetId()
 	})
 }
 
 func (dispatcher *BaseDispatcher[T]) UnsubscribeOnBlocked(listener Listener[T]) {
 	utils.RemoveFirst(dispatcher.onBlockedListeners, func(item Listener[T]) bool {
-		return listener.getId() == item.getId()
+		return listener.GetId() == item.GetId()
 	})
 }
 
@@ -55,5 +57,49 @@ func NewBaseDispatcher[T Action]() *BaseDispatcher[T] {
 		onStartListeners:    make([]Listener[T], 0),
 		onFinishedListeners: make([]Listener[T], 0),
 		onBlockedListeners:  make([]Listener[T], 0),
+	}
+}
+
+// PRIVATE
+
+func (dispatcher *BaseDispatcher[T]) dispatchBlocked(action T) {
+	for _, listener := range dispatcher.onBlockedListeners {
+		listener.Notify(action)
+	}
+}
+
+func (dispatcher *BaseDispatcher[T]) dispatchFinished(action T) {
+	for _, listener := range dispatcher.onFinishedListeners {
+		listener.Notify(action)
+	}
+}
+
+func (dispatcher *BaseDispatcher[T]) dispatchStart(action T) {
+	encountered := make([]ID, 0)
+
+	for {
+		for _, listener := range dispatcher.onStartListeners {
+			// Don't notify encountered listeners
+			if utils.Contains(encountered, listener.GetId()) {
+				continue
+			}
+
+			action.SetModified(false)
+
+			listener.Notify(action)
+
+			if action.IsModified() {
+				encountered = append(encountered, listener.GetId())
+				break
+			}
+
+		}
+
+		// Only stop once actions aren't modified
+		if !action.IsModified() {
+			break
+		} else {
+			action.SetModified(false)
+		}
 	}
 }

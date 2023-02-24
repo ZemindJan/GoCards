@@ -11,11 +11,11 @@ type StatChange[T ValueType] struct {
 }
 
 func (sc StatChange[T]) Execute() {
-	sc.Stat.setDirect(sc.NewValue)
+	sc.Stat.SetDirect(sc.NewValue)
 }
 
 type Stat[T ValueType] interface {
 	Value[T]           // Allows stat to be read
 	Set(value T)       // Attempt to set the stat via a StatChange action
-	setDirect(value T) // Actually modifies the stat
+	SetDirect(value T) // Actually modifies the stat
 }

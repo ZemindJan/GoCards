@@ -12,4 +12,6 @@ func (da DamageAction) Execute() {
 	da.Target.Health.Set(
 		da.Target.Health.Get() - da.Amount,
 	)
+
+	da.Target.DamageTakenSinceLastTurn += da.Amount
 }

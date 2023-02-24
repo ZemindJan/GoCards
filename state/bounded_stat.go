@@ -33,7 +33,7 @@ func (stat *BoundedStat[T]) Set(value T) {
 	})
 }
 
-func (stat *BoundedStat[T]) setDirect(value T) {
+func (stat *BoundedStat[T]) SetDirect(value T) {
 	stat.value = utils.Clamp(value, stat.Minimum.Get(), stat.Maximum.Get())
 }
 

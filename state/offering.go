@@ -1,5 +1,7 @@
 package state
 
+import "fmt"
+
 type OfferingColor string
 
 const (
@@ -16,4 +18,8 @@ func MakeOffering(red int, green int, blue int) Offering {
 		Green: green,
 		Blue:  blue,
 	}
+}
+
+func (offering Offering) ToString() string {
+	return fmt.Sprintf("{%d Red, %d Green, %d Blue}", offering[Red], offering[Green], offering[Blue])
 }
